@@ -6,7 +6,7 @@ const styles = StyleSheet.create({
         backgroundColor : "black",
         justifyContent : "center",
         alignItems : "center",
-        padding : 36
+        padding : 16
     },
     container : {
         flex : 1,
@@ -14,20 +14,28 @@ const styles = StyleSheet.create({
         height : "100%",
         alignItems : "center",
         justifyContent : "space-evenly",
-        backgroundColor : "red",
         padding : 12,
-        marginTop : 32,
-        marginBottom : 32,
+        marginTop : 16,
+        marginBottom : 16,
+        borderRadius : 16
     },
     button : {
-        width : "100%",
-        height : 72,
+        width : 256,
+        height : 256,
         backgroundColor : "lime",
         justifyContent : "center",
-        alignItems : "center"
+        alignItems : "center",
+        borderRadius : "100%"
+    },
+    textContainer : {
+        
     },
     text : {
         fontSize : 24,
+    },
+    statsText : {
+        color : "white",
+        fontSize : 24
     },
 })
 
