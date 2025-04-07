@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
 import { initializeApp } from 'firebase/app';
 import { ref, set, getDatabase, onValue, get } from 'firebase/database';
+import { Accelerometer } from 'expo-sensors';
 
 type Coordinates = {
   latitude: number;
@@ -25,6 +26,54 @@ const index = () => {
     const [error, setError] = useState<string | null>(null);
     const [sosMode, setSosMode] = useState<boolean>(false);
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
+    const [isDropped, setDrop] = useState<boolean>(false);
+    const [isTilted, setTilt] = useState<boolean>(false);
+    const isTiltedRef = useRef(isTilted);
+
+    Accelerometer.addListener(accelerometerData => {
+        if(Math.sqrt(Math.pow(accelerometerData.x, 2) + Math.pow(accelerometerData.y, 2) + Math.pow(accelerometerData.z, 2)) >= 3) {
+            setDrop(true);
+        }
+    });
+
+    useEffect(() => {
+        isTiltedRef.current = isTilted;
+    }, [isTilted]);
+
+    useEffect(() => {
+        if (!isDropped) return;
+    
+        let counter = 0;
+        const interval = setInterval(() => {
+            const currentTilted = isTiltedRef.current;
+            console.log(`Check ${counter + 1}: drop=${isDropped}, tilted=${currentTilted}`);
+    
+            if (isDropped && currentTilted) {
+                toggleSOSMode();
+                clearInterval(interval);
+            }
+    
+            counter++;
+            if (counter >= 10) {
+                clearInterval(interval);
+                console.log("🔁 Done checking after 10 seconds.");
+                setDrop(false);
+            }
+        }, 1000);
+    
+        return () => clearInterval(interval);
+    }, [isDropped]);
+
+    useEffect(() => {
+        const tiltModeRef = ref(database, 'BMSAI/tilt');
+        const unsubscribe = onValue(tiltModeRef, (snapshot) => {
+            const value = snapshot.val();
+            setTilt(value);
+            console.log('Tilt Mode updated:', value);
+        });
+
+        return () => unsubscribe();
+    }, []);
 
     // 1. Listen to Firebase sosMode changes
     useEffect(() => {
@@ -96,7 +145,6 @@ const index = () => {
                     ...existingData,
                     Latitude: coords.latitude,
                     Longitude: coords.longitude,
-                    sosMode: sosMode
                 };
         
                 await set(bmsaiRef, updatedData);
@@ -139,9 +187,13 @@ const index = () => {
     }, [sosMode]); // Re-run when sosMode changes
 
     // 3. Toggle SOS mode
-    const toggleSOSMode = () => {
+    const toggleSOSMode = async () => {
         const newMode = !sosMode;
-        set(ref(database, 'BMSAI/sosMode'), newMode);
+        try {
+            await set(ref(database, 'BMSAI/sosMode'), newMode);
+        } catch (error) {
+            console.error("Error toggling SOS mode:", error);
+        }
     };
 
     return (
