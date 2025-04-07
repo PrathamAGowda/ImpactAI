@@ -30,20 +30,25 @@ const Index = () => {
     const isTiltedRef = useRef(isTilted);
     const locationSubRef = useRef<Location.LocationSubscription | null>(null);
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
-
     // Accelerometer handler
     useEffect(() => {
+        let lastTriggerTime = 0;
+        const cooldown = 1000;
         const subscription = Accelerometer.addListener(accelerometerData => {
             const acceleration = Math.sqrt(
-                Math.pow(accelerometerData.x, 2) + 
-                Math.pow(accelerometerData.y, 2) + 
-                Math.pow(accelerometerData.z, 2)
+                accelerometerData.x ** 2 + 
+                accelerometerData.y ** 2 + 
+                accelerometerData.z ** 2
             );
-            if(acceleration >= 2.5) {
-              setDrop(true); 
+            
+            const now = Date.now();
+            if (acceleration >= 2 && now - lastTriggerTime > cooldown) {
+                lastTriggerTime = now;
+                setDrop(true);
+                console.log("Drop detected!");
             }
         });
-
+    
         return () => subscription.remove();
     }, []);
 
@@ -62,19 +67,22 @@ const Index = () => {
     
             if (isDropped && isTiltedRef.current) {
                 toggleSOSMode();
+                setDrop(false);  // Reset immediately on success
                 clearInterval(interval);
             }
     
             counter++;
             if (counter >= 10) {
                 clearInterval(interval);
-                console.log("Done checking after 10 seconds.");
-                setDrop(false);
+                setDrop(false);  // Fallback reset after 10 seconds
+                console.log("Timeout: No tilt detected in 10 seconds.");
             }
         }, 1000);
     
         return () => clearInterval(interval);
     }, [isDropped]);
+
+
 
     // Tilt mode listener
     useEffect(() => {
