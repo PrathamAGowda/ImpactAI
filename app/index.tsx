@@ -217,7 +217,7 @@ const Index = () => {
 
     useEffect(() => {
         if(sosMode){
-            // Linking.openURL("tel:1234567890");
+            Linking.openURL("tel:1234567890");
         }
     },[sosMode])
 
